@@ -1,0 +1,73 @@
+---
+- name: Install Java, Docker, SonarQube, and Trivy
+  hosts: all
+  become: yes
+  tasks:
+    - name: update repo
+      command: sudo apt update
+
+    - name: Install OpenJDK 17
+      apt:
+        name: openjdk-17-jre-headless
+        state: present
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Set permissions for Docker socket
+      command: chmod 666 /var/run/docker.sock
+      become: true
+
+    - name: Run SonarQube container
+      command: docker run -d -p 9000:9000 sonarqube:lts-community
+      become: true
+
+    - name: Install dependencies for Trivy
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - wget
+        - apt-transport-https
+        - gnupg
+        - lsb-release
+
+    - name: Add GPG key for Trivy
+      shell: wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+      become: true
+
+    - name: Add Trivy repository
+      shell: echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+      become: true
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Trivy
+      apt:
+        name: trivy
+        state: present
+    - name: Download SonarScanner
+      get_url:
+        url: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+        dest: /tmp/sonar-scanner-cli-4.8.0.2856-linux.zip
+
+    - name: Install unzip
+      apt:
+        name: unzip
+        state: present
+
+    - name: Unzip SonarScanner
+      unarchive:
+        src: /tmp/sonar-scanner-cli-4.8.0.2856-linux.zip
+        dest: /home/ubuntu/
+        remote_src: yes
+        creates: /home/ubuntu/sonar-scanner-4.8.0.2856-linux
