@@ -26,18 +26,7 @@ You can now use these encrypted Docker credentials in your playbook. Here's an e
   vars_files:
     - docker_credentials.yml
 
-  tasks:
-    - name: Log in to Docker registry
-      ansible.builtin.docker_login:
-        registry_url: "https://index.docker.io/v1/"
-        username: "{{ docker_username }}"
-        password: "{{ docker_password }}"
 
-    - name: Push Docker image
-      ansible.builtin.docker_image:
-        name: your_image_name
-        tag: latest
-        push: yes
 ```
 
 ### 3. Run the Playbook:
